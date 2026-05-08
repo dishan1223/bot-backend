@@ -71,7 +71,7 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message) ([]typ
     fullMessages = append(fullMessages, currentMessage)
 
     payload := map[string]any{
-        "model": "qwen/qwen3-next-80b-a3b-instruct:free",
+        "model": "openai/gpt-oss-120b:free",
         "messages": fullMessages, 
     }
 
