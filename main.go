@@ -9,6 +9,8 @@ import(
     "github.com/dishan1223/bot-backend/controller"
 )
 
+// Get this history from vector database, based on botId
+// botId is a unique identifier for each bot that is embedded in the esp32 device
 var history = []types.Message{
     {
         Role: "user",
@@ -25,34 +27,14 @@ func main(){
     app := fiber.New()
     v1 := app.Group("/api/v1")
 
-    app.Get("/", func( c fiber.Ctx ) error {
-        return c.SendString("hello from backend")
-    })
-
-    v1.Get("/weather", func(c fiber.Ctx) error {
-        
-        data,err := controller.WeatherApiCall()
-        if err != nil{
-            log.Fatal(err)
-            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-                "error": "Failed to fetch weather data",
-            })
-        }
-
-        c.Set("Content-Type","application/json")
-        return c.Status(fiber.StatusOK).JSON(data)
-    })
-
     // domain:3000/api/v1/chat
     v1.Post("/chat", func(c fiber.Ctx) error {
         p := new(types.Prompt)
        
-              
-
-        // this ctx shall be embeded to the bot itself
         // json example from client
         //  {
-        // "msg": "Nimo whats todays date? ",
+        //      "msg": "Nimo whats todays date? ",
+        //      "botId": "ab123x",
         // }
         // ctx is saved in consts/consts.go file.(development)
         // No need to take contexts from the esp32. 
@@ -62,6 +44,9 @@ func main(){
             fmt.Println(err)
         }
 
+        // send request to OpenRouter. newHistory is the updated conversational history
+        // we will need to update our database with this newHistory for each bot.
+        // each bot's id is the botId
         newHistory,fullResponse, err := controller.SendReqToOpenRouter(p.Message, consts.GeneralAiContext, history)
         if err != nil {
             log.Fatal(err)
@@ -71,6 +56,8 @@ func main(){
         }
 
         // updating conversational history
+        // NOTE: currently we are not using any database. But we will move to sqlite-vec
+        // as our primary vector database
         history = newHistory
         replyText := ""
         if len(fullResponse.Choices) > 0 {
