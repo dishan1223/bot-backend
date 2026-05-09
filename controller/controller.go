@@ -1,13 +1,11 @@
 package controller
 
 import (
-    "log"
-    "os"
     "io"
+    "fmt"
     "encoding/json"
     "bytes"
     "net/http"
-    "github.com/joho/godotenv"
     "github.com/dishan1223/bot-backend/types"
     "github.com/dishan1223/bot-backend/consts"
     "github.com/dishan1223/bot-backend/internal/systemInfo"
@@ -16,18 +14,16 @@ import (
 
 
 // msg: the message the users want to send to AI Model
-func SendReqToOpenRouter(msg string, ctx string, history []types.Message) ([]types.Message,types.AiResp, error){
-    url := "https://openrouter.ai/api/v1/chat/completions"
-    err := godotenv.Load()
-    if err != nil{
-        log.Fatal(err)
-    }
+func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey string) ([]types.Message,types.AiResp, error){
+    // this variables stores AI response
+    var result types.AiResp
 
-    apiKey := os.Getenv("OPENROUTER_API_KEY")
+    url := "https://openrouter.ai/api/v1/chat/completions"
+
 
     system_info, err := systemInfo.GetModelDeps(msg) 
     if err != nil{
-        log.Fatal(err)
+        fmt.Printf("Error getting systemInfo: %e",err)
         system_info = ""
     }
     
@@ -57,12 +53,14 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message) ([]typ
 
     jsonData, err := json.Marshal(payload)
     if err != nil{
-        log.Fatal(err)
+        fmt.Printf("Error on json marshaling : %e",err)
+        return nil, result, err
     }
 
     req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
     if err != nil{
-        log.Fatal(err)
+        fmt.Printf("Error on making network request : %e", err)
+        return nil, result, err
     }
 
     var authorizationHeader string = "Bearer " + apiKey
@@ -75,13 +73,20 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message) ([]typ
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil{
-        log.Fatal(err)
+        return nil, result, fmt.Errorf("Failed to connect to OpenRouter: %e", err)
     }
     defer resp.Body.Close()
 
-    body, _ := io.ReadAll(resp.Body)
+    if resp.StatusCode != http.StatusOK {
+        return nil, result, fmt.Errorf("Openrouter retured status %d : %s",resp.StatusCode, resp.Status)
+    }
 
-    var result types.AiResp
+    body, err := io.ReadAll(resp.Body)
+    if err != nil{
+        fmt.Println(err)
+        return nil, result, nil 
+    }
+
     if err := json.Unmarshal(body, &result); err != nil{
         return nil, result, err
     }

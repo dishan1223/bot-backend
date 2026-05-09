@@ -1,21 +1,22 @@
 package api
 
 import (
-    "log"
-    "os"
-    "encoding/json"
-    "net/http"
-    "github.com/dishan1223/bot-backend/types"
-    "github.com/joho/godotenv"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+
+	"github.com/dishan1223/bot-backend/types"
+	"github.com/joho/godotenv"
 )
 
-// this is the provider function that fetches data from openweather and returns 
+// this is the provider function that fetches data from openweather and returns
 // it to the AI via systemInfoContext (internal/systemInfo/systemInfo.go)
 func GetWeatherReport() (types.WeatherReport, error){
 
     err := godotenv.Load()
     if err != nil{
-        log.Fatal(err)
+        fmt.Println("Error getting environment")
     }
 
 
@@ -30,13 +31,13 @@ func GetWeatherReport() (types.WeatherReport, error){
 
     req, err := http.NewRequest("GET",url,nil)
     if err != nil{
-        log.Fatal(err)
+        fmt.Printf("failed to create request to get weather data: %e",err)
     }
 
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil{
-        log.Fatal(err)
+        fmt.Printf("failed to send api request to openweather: %e", err)
     }
     defer resp.Body.Close()
 
@@ -52,7 +53,7 @@ func GetWeatherReport() (types.WeatherReport, error){
     }
 
     if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil{
-        log.Fatal(err)
+        fmt.Printf("failed to decode opendata api response : %e", err)
     }
 
     WeatherData := types.WeatherReport{

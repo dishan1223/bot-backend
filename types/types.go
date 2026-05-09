@@ -2,6 +2,7 @@ package types
 
 type Prompt struct{
     Message string `json:"msg"`
+    BotId string `json:"botId"`
 }
 
 type WeatherReport struct{

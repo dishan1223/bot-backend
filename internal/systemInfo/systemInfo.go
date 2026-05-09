@@ -27,6 +27,9 @@ func GetModelDeps(msg string) (string, error){
         if err != nil{
             fmt.Println("Error getting weather data: ",err)
             system_info = ""
+            // loggin the error in this function. so maybe i dont need to send the error to 
+            // the controller
+            return system_info, nil 
         }
         weatherDataforAiModel := fmt.Sprintf("temp: %f, feels_like: %f, humidity: %d, wind_speed: %f ", w.Temp, w.FeelsLike, w.Humidity, w.WindSpeed)
 
