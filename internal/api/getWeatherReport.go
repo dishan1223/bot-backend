@@ -4,23 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/dishan1223/bot-backend/types"
-	"github.com/joho/godotenv"
 )
 
-// this is the provider function that fetches data from openweather and returns
+var apiKey string
+
+
+// @info which this function we dont have to call api key from .env everytime this function runs
+func InitWeatherAPI(key string){
+    apiKey = key
+}
+
+// @info this is the provider function that fetches data from openweather and returns
 // it to the AI via systemInfoContext (internal/systemInfo/systemInfo.go)
 func GetWeatherReport() (types.WeatherReport, error){
-
-    err := godotenv.Load()
-    if err != nil{
-        fmt.Println("Error getting environment")
-    }
-
-
-    apiKey := os.Getenv("OPENWEATHER_API_KEY")
 
     // lat and lon will be embedded in the esp32 device. uses will be able to change it
     // via our Mobile Application and send it to this server

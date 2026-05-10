@@ -5,11 +5,14 @@ import(
     "fmt"
     "os"
     "github.com/gofiber/fiber/v3"
+    "github.com/gofiber/fiber/v3/middleware/cors"
+    "github.com/gofiber/fiber/v3/middleware/logger"
+    "github.com/gofiber/fiber/v3/middleware/requestid"
     "github.com/joho/godotenv"
     "github.com/dishan1223/bot-backend/types"
     "github.com/dishan1223/bot-backend/consts"
     "github.com/dishan1223/bot-backend/controller"
-    "github.com/gofiber/fiber/v3/middleware/cors"
+    "github.com/dishan1223/bot-backend/internal/api"
 )
 
 // Get this history from vector database, based on botId
@@ -29,14 +32,27 @@ var history = []types.Message{
 func main(){
 
     // loading environment variables
+    // and Initializing dependencies
     if err := godotenv.Load(); err != nil{
         fmt.Println("Error adding the environment variables")
     }
     apiKey := os.Getenv("OPENROUTER_API_KEY")
+    weatherApiKey := os.Getenv("OPENWEATHER_API_KEY")
+    api.InitWeatherAPI(weatherApiKey)
 
+
+
+    // backend part starts from here
     app := fiber.New()
     v1 := app.Group("/api/v1")
+    
+
+    // gofiber middlewares
     app.Use(cors.New())
+    app.Use(requestid.New())
+    app.Use(logger.New(logger.Config{
+        Format: "$[${ip}]:${port} | {pid} ${requestid} ${status} - ${method} ${path}\n",
+    }))
 
     // domain:3000/api/v1/chat
     v1.Post("/chat", func(c fiber.Ctx) error {
@@ -46,6 +62,7 @@ func main(){
         //  {
         //      "msg": "Nimo whats todays date? ",
         //      "botId": "ab123x",
+        //      "userName": "Ishtiaq Dishan",
         // }
         // ctx is saved in consts/consts.go file.(development)
         // No need to take contexts from the esp32. 
