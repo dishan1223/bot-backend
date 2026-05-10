@@ -30,12 +30,14 @@ func GetWeatherReport() (types.WeatherReport, error){
     req, err := http.NewRequest("GET",url,nil)
     if err != nil{
         fmt.Printf("failed to create request to get weather data: %e",err)
+        return types.WeatherReport{}, err
     }
 
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil{
         fmt.Printf("failed to send api request to openweather: %e", err)
+        return types.WeatherReport{}, err
     }
     defer resp.Body.Close()
 
@@ -52,6 +54,7 @@ func GetWeatherReport() (types.WeatherReport, error){
 
     if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil{
         fmt.Printf("failed to decode opendata api response : %e", err)
+        return types.WeatherReport{}, err
     }
 
     WeatherData := types.WeatherReport{

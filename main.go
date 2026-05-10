@@ -1,18 +1,18 @@
 package main
 
-import(
-    "log"
-    "fmt"
-    "os"
-    "github.com/gofiber/fiber/v3"
-    "github.com/gofiber/fiber/v3/middleware/cors"
-    "github.com/gofiber/fiber/v3/middleware/logger"
-    "github.com/gofiber/fiber/v3/middleware/requestid"
-    "github.com/joho/godotenv"
-    "github.com/dishan1223/bot-backend/types"
-    "github.com/dishan1223/bot-backend/consts"
-    "github.com/dishan1223/bot-backend/controller"
-    "github.com/dishan1223/bot-backend/internal/api"
+import (
+	"fmt"
+	"os"
+
+	"github.com/dishan1223/bot-backend/consts"
+	"github.com/dishan1223/bot-backend/controller"
+	"github.com/dishan1223/bot-backend/internal/api"
+	"github.com/dishan1223/bot-backend/types"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/requestid"
+	"github.com/joho/godotenv"
 )
 
 // Get this history from vector database, based on botId
@@ -30,6 +30,7 @@ var history = []types.Message{
 
 
 func main(){
+
 
     // loading environment variables
     // and Initializing dependencies
@@ -77,8 +78,8 @@ func main(){
         // each bot's id is the botId
         newHistory,fullResponse, err := controller.SendReqToOpenRouter(p.Message, consts.GeneralAiContext, history, apiKey)
         if err != nil {
-            log.Fatal(err)
-            c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            fmt.Println(err)
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
                 "error": "Internal server error",
             })
         }
