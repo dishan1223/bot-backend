@@ -6,11 +6,14 @@ type Prompt struct{
     UserName string `json:"userName"`
 }
 
-type WeatherReport struct{
-    Temp float64 `json:"temp"`
-    FeelsLike float64 `json:"feels_like"`
-    Humidity int `json:"humidity"`
-    WindSpeed float64 `json:"wind_speed"`
+type WeatherReport struct {
+	Temp        float64
+	FeelsLike   float64
+	Humidity    int
+	WindSpeed   float64
+	Location    string
+	Country     string
+	Description string
 }
 
 type Message struct{

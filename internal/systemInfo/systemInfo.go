@@ -4,8 +4,22 @@ import(
     "strings"
     "time"
     "fmt"
+    "github.com/dishan1223/bot-backend/consts"
     "github.com/dishan1223/bot-backend/internal/api" 
 )
+
+
+// trying to make the intent detection system better with this function. this way 
+// we dont need to write a big condition in each if statements
+func containsAny(msg string, keywords []string) bool{
+    for _ , k := range keywords {
+        if strings.Contains(msg, k){
+            return true
+        }
+    }
+    return false
+}
+
 
 
 // this functions provides extra dependencies to the AI model
@@ -15,13 +29,20 @@ import(
 // basically a library of data for the ai model to read to provide better response
 // maybe on kind of training
 func GetModelDeps(msg string) (string, error){
+
+    msg = strings.ToLower(msg)
+
     var system_info string
-    if strings.Contains(strings.ToLower(msg), "time"){
+    
+    // Time&Date intent check
+    if containsAny(msg, consts.TIME_KEYWORDS){
         system_info = time.Now().Format(time.RFC3339)
     }
-    if strings.Contains(strings.ToLower(msg), "weather")|| 
-    strings.Contains(strings.ToLower(msg), "temperature")||
-    strings.Contains(strings.ToLower(msg), "temp"){
+    
+
+    // Weather Intent Check
+    if containsAny(msg, consts.WEATHER_KEYWORDS){
+
         w,err := api.GetWeatherReport()
 
         if err != nil{
@@ -31,8 +52,22 @@ func GetModelDeps(msg string) (string, error){
             // the controller
             return system_info, nil 
         }
-        weatherDataforAiModel := fmt.Sprintf("temp: %f, feels_like: %f, humidity: %d, wind_speed: %f ", w.Temp, w.FeelsLike, w.Humidity, w.WindSpeed)
-
+        weatherDataforAiModel := fmt.Sprintf(
+        	`Weather Report:
+            Location: %s, %s
+            Condition: %s
+            Temperature: %.1f°C
+            Feels Like: %.1f°C
+            Humidity: %d%%
+            Wind Speed: %.1f m/s`,
+	        w.Location,
+	        w.Country,
+	        w.Description,
+	        w.Temp,
+	        w.FeelsLike,
+	        w.Humidity,
+	        w.WindSpeed,
+        )
         system_info = weatherDataforAiModel
     }
 

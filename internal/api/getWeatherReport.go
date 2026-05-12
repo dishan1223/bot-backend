@@ -1,9 +1,10 @@
 package api
 
 import (
-	"encoding/json"
+    "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
+    "time"
 
 	"github.com/dishan1223/bot-backend/types"
 )
@@ -25,15 +26,23 @@ func GetWeatherReport() (types.WeatherReport, error){
     var lat string = "24.4577"
     var lon string = "89.7080"
 
-    var url string = "https://api.openweathermap.org/data/2.5/weather?lat="+lat+"&lon="+lon+"&appid="+apiKey
+    var url string = fmt.Sprintf(
+		"https://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&appid=%s",
+		lat,
+		lon,
+		apiKey,
+	)
 
-    req, err := http.NewRequest("GET",url,nil)
+    // "GET" -> http.MethodGet. Read the docs yesterday
+    req, err := http.NewRequest(http.MethodGet,url,nil)
     if err != nil{
         fmt.Printf("failed to create request to get weather data: %e",err)
         return types.WeatherReport{}, err
     }
 
-    client := &http.Client{}
+    client := &http.Client{
+        Timeout: 10 * time.Second,
+    }
     resp, err := client.Do(req)
     if err != nil{
         fmt.Printf("failed to send api request to openweather: %e", err)
@@ -41,30 +50,59 @@ func GetWeatherReport() (types.WeatherReport, error){
     }
     defer resp.Body.Close()
 
-    var raw struct{
-        Main struct{
-            Temp float64 `json:"temp"`
-            FeelsLike float64 `json:"feels_like"`
-            Humidity int `json:"humidity"`
-        } `json:"main"`
-        Wind struct{
-            Speed float64 `json:"speed"`
-        } `json:"wind"`
+    // if api sends a non-200 response then no need to run the rest of the code
+    if resp.StatusCode != http.StatusOK{
+        fmt.Printf("failed to get weather data: %s", resp.Status)
+        return types.WeatherReport{}, nil
     }
 
-    if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil{
+    var raw struct {
+		Name string `json:"name"`
+
+		Weather []struct {
+			Description string `json:"description"`
+		} `json:"weather"`
+
+		Main struct {
+			Temp      float64 `json:"temp"`
+			FeelsLike float64 `json:"feels_like"`
+			Humidity  int     `json:"humidity"`
+		} `json:"main"`
+
+		Wind struct {
+			Speed float64 `json:"speed"`
+		} `json:"wind"`
+
+		Sys struct {
+			Country string `json:"country"`
+		} `json:"sys"`
+	} 
+
+    // Sonic is a blazingly fast JSON serializing & deserializing library, accelerated by JIT (just-in-time compiling)
+    // and SIMD (single-instruction-multiple-data). 
+    // this is relatively much faster than standard encoding/json library
+    SonicDecoder := sonic.ConfigDefault.NewDecoder(resp.Body) 
+    if err := SonicDecoder.Decode(&raw); err != nil{
         fmt.Printf("failed to decode opendata api response : %e", err)
         return types.WeatherReport{}, err
     }
 
-    WeatherData := types.WeatherReport{
-        Temp: raw.Main.Temp - 273.15,
-        FeelsLike: raw.Main.FeelsLike - 273.15,
-        Humidity: raw.Main.Humidity,
-        WindSpeed: raw.Wind.Speed,
-    }
+    weatherData := types.WeatherReport{
+		Temp:       raw.Main.Temp - 273.15,
+		FeelsLike:  raw.Main.FeelsLike - 273.15,
+		Humidity:   raw.Main.Humidity,
+		WindSpeed:  raw.Wind.Speed,
+		Location:   raw.Name,
+		Country:    raw.Sys.Country,
+		Description: func() string {
+			if len(raw.Weather) > 0 {
+				return raw.Weather[0].Description
+			}
+			return ""
+		}(),
+	} 
 
 
     // weatherData is the actual data and nil is error set to nil
-    return WeatherData, nil 
+    return weatherData, nil 
 }

@@ -3,7 +3,7 @@ package controller
 import (
     "io"
     "fmt"
-    "encoding/json"
+    "github.com/bytedance/sonic"
     "bytes"
     "net/http"
     "github.com/dishan1223/bot-backend/types"
@@ -51,7 +51,7 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey
     }
 
 
-    jsonData, err := json.Marshal(payload)
+    jsonData, err := sonic.Marshal(payload)
     if err != nil{
         fmt.Printf("Error on json marshaling : %e",err)
         return nil, result, err
@@ -87,7 +87,7 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey
         return nil, result, nil 
     }
 
-    if err := json.Unmarshal(body, &result); err != nil{
+    if err := sonic.Unmarshal(body, &result); err != nil{
         return nil, result, err
     }
 
