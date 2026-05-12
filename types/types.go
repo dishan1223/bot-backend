@@ -29,3 +29,13 @@ type AiResp struct {
 	} `json:"choices"`
 }
 
+
+type SearchResult struct {
+	Data struct {
+		WebPages struct {
+			Value []struct {
+				Summary string `json:"summary"`
+			} `json:"value"`
+		} `json:"webPages"`
+	} `json:"data"`
+}

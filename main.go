@@ -1,5 +1,10 @@
 package main
 
+// NOTE: 
+// WE have many error handling right now. To track them in production, 
+// we will use a Telegram Bot who'll notify us on every error in the server
+
+
 import (
 	"fmt"
 	"os"
@@ -7,6 +12,7 @@ import (
 	"github.com/dishan1223/bot-backend/consts"
 	"github.com/dishan1223/bot-backend/controller"
 	"github.com/dishan1223/bot-backend/internal/api"
+	"github.com/dishan1223/bot-backend/internal/service"
 	"github.com/dishan1223/bot-backend/types"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
@@ -32,14 +38,14 @@ var history = []types.Message{
 func main(){
 
 
-    // loading environment variables
-    // and Initializing dependencies
+    // Loading environment variables
+    // and initializing dependencies
     if err := godotenv.Load(); err != nil{
         fmt.Println("Error adding the environment variables")
     }
     apiKey := os.Getenv("OPENROUTER_API_KEY")
-    weatherApiKey := os.Getenv("OPENWEATHER_API_KEY")
-    api.InitWeatherAPI(weatherApiKey)
+    api.InitWeatherAPI(os.Getenv("OPENWEATHER_API_KEY"))
+    service.InitSearchAPI(os.Getenv("LANGSEARCH_API_KEY"))
 
 
 

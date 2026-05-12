@@ -1,15 +1,17 @@
 package systemInfo
 
-import(
-    "strings"
-    "time"
-    "fmt"
-    "github.com/dishan1223/bot-backend/consts"
-    "github.com/dishan1223/bot-backend/internal/api" 
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/bytedance/sonic"
+	"github.com/dishan1223/bot-backend/consts"
+	"github.com/dishan1223/bot-backend/internal/api"
+	"github.com/dishan1223/bot-backend/internal/service"
 )
 
-
-// trying to make the intent detection system better with this function. this way 
+// trying to make the intent detection system better with this function. this way
 // we dont need to write a big condition in each if statements
 func containsAny(msg string, keywords []string) bool{
     for _ , k := range keywords {
@@ -50,7 +52,7 @@ func GetModelDeps(msg string) (string, error){
             system_info = ""
             // loggin the error in this function. so maybe i dont need to send the error to 
             // the controller
-            return system_info, nil 
+            return system_info, err 
         }
         weatherDataforAiModel := fmt.Sprintf(
         	`Weather Report:
@@ -68,7 +70,25 @@ func GetModelDeps(msg string) (string, error){
 	        w.Humidity,
 	        w.WindSpeed,
         )
-        system_info = weatherDataforAiModel
+        system_info +="\nWeather Data Context " + weatherDataforAiModel
+    }
+
+
+    if containsAny(msg, consts.SEARCH_KEYWORDS){
+        searchResults, err := service.GetWebResultsFromLangSearch(msg)
+        if err != nil{
+            fmt.Println("Error from search service")
+
+            return system_info, err
+        }
+
+        searchDataToAI , err := sonic.MarshalString(searchResults) 
+        if err != nil{
+            fmt.Println("Error marshaling search results:", err)
+            return system_info, err
+        }
+
+        system_info += "\nSearch Context : " + searchDataToAI
     }
 
     return system_info,nil
