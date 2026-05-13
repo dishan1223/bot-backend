@@ -14,7 +14,7 @@ import (
 
 
 // msg: the message the users want to send to AI Model
-func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey string) ([]types.Message,types.AiResp, error){
+func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey string, userName string) ([]types.Message,types.AiResp, error){
     // this variables stores AI response
     var result types.AiResp
 
@@ -36,7 +36,7 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey
 
     fullMessages = append(fullMessages, types.Message{
         Role: "system",
-        Content: consts.GeneralAiContext + " Info: "+system_info,
+        Content: consts.GeneralAiContext + "\nYour Owner is : "+ userName + "\nMore Contexts: "+system_info,
     })
 
     fullMessages = append(fullMessages, history...)

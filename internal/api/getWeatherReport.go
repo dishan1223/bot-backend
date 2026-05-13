@@ -11,20 +11,22 @@ import (
 
 var apiKey string
 
+// lat and lon will be embedded in the esp32 device. uses will be able to change it
+// via our Mobile Application and send it to this server
+var lat string
+var lon string
+
 
 // @info which this function we dont have to call api key from .env everytime this function runs
-func InitWeatherAPI(key string){
+func InitWeatherAPI(key string, l string, lo string){
     apiKey = key
+    lat = l
+    lon = lo
 }
 
 // @info this is the provider function that fetches data from openweather and returns
 // it to the AI via systemInfoContext (internal/systemInfo/systemInfo.go)
 func GetWeatherReport() (types.WeatherReport, error){
-
-    // lat and lon will be embedded in the esp32 device. uses will be able to change it
-    // via our Mobile Application and send it to this server
-    var lat string = "24.4577"
-    var lon string = "89.7080"
 
     var url string = fmt.Sprintf(
 		"https://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&appid=%s",

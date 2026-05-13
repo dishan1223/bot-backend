@@ -4,6 +4,8 @@ type Prompt struct{
     Message string `json:"msg"`
     BotId string `json:"botId"`
     UserName string `json:"userName"`
+    Lat string `json:"lat"`
+    Lon string `json:"lon"`
 }
 
 type WeatherReport struct {

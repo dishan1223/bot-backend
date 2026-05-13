@@ -44,7 +44,6 @@ func main(){
         fmt.Println("Error adding the environment variables")
     }
     apiKey := os.Getenv("OPENROUTER_API_KEY")
-    api.InitWeatherAPI(os.Getenv("OPENWEATHER_API_KEY"))
     service.InitSearchAPI(os.Getenv("LANGSEARCH_API_KEY"))
 
 
@@ -64,12 +63,16 @@ func main(){
     // domain:3000/api/v1/chat
     v1.Post("/chat", func(c fiber.Ctx) error {
         p := new(types.Prompt)
+        // initialize weather api service
+        api.InitWeatherAPI(os.Getenv("OPENWEATHER_API_KEY"), p.Lat, p.Lon)
        
         // json example from client
         //  {
         //      "msg": "Nimo whats todays date? ",
         //      "botId": "ab123x",
         //      "userName": "Ishtiaq Dishan",
+        //      "lat": "24.4577",
+        //      "lon": "89.7080"
         // }
         // ctx is saved in consts/consts.go file.(development)
         // No need to take contexts from the esp32. 
@@ -79,10 +82,18 @@ func main(){
             fmt.Println(err)
         }
 
+        // free up context window.
+        // NOTE : This is only for the alpha version of this codebase for testing purposes.
+        // In production we will use a database and conditionally take contexts
+        if len(history) >= consts.CONTEXT_WINDOW{
+            history = history[consts.TRIM_COUNT:]
+        }
+        
+
         // send request to OpenRouter. newHistory is the updated conversational history
         // we will need to update our database with this newHistory for each bot.
         // each bot's id is the botId
-        newHistory,fullResponse, err := controller.SendReqToOpenRouter(p.Message, consts.GeneralAiContext, history, apiKey)
+        newHistory,fullResponse, err := controller.SendReqToOpenRouter(p.Message, consts.GeneralAiContext, history, apiKey, p.UserName)
         if err != nil {
             fmt.Println(err)
             return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -106,5 +117,9 @@ func main(){
         })
     })
 
-    fmt.Println(app.Listen(":3000"))
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "3000"
+    }
+    fmt.Println(app.Listen(":" + port))
 }
