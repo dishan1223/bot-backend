@@ -40,9 +40,7 @@ func main(){
 
     // Loading environment variables
     // and initializing dependencies
-    if err := godotenv.Load(); err != nil{
-        fmt.Println("Error adding the environment variables")
-    }
+    _ = godotenv.Load()
     apiKey := os.Getenv("OPENROUTER_API_KEY")
     service.InitSearchAPI(os.Getenv("LANGSEARCH_API_KEY"))
 
