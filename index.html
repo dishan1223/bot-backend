@@ -513,8 +513,16 @@
                     })
                 });
 
-                const data = await response.json();
                 typing.style.display = 'none';
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("API Error:", response.status, errorText);
+                    addMessage('bot', `I'm having some trouble (Status ${response.status}). Try again in a bit?`);
+                    return;
+                }
+
+                const data = await response.json();
 
                 if (data.reply) {
                     addMessage('bot', data.reply);

@@ -14,16 +14,16 @@ import (
 
 
 // msg: the message the users want to send to AI Model
-func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey string, userName string) ([]types.Message,types.AiResp, error){
+func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey string, userName string, lat string, lon string) ([]types.Message,types.AiResp, error){
     // this variables stores AI response
     var result types.AiResp
 
     url := "https://openrouter.ai/api/v1/chat/completions"
 
 
-    system_info, err := systemInfo.GetModelDeps(msg) 
+    system_info, err := systemInfo.GetModelDeps(msg, lat, lon) 
     if err != nil{
-        fmt.Printf("Error getting systemInfo: %e",err)
+        fmt.Printf("Error getting systemInfo: %v",err)
         system_info = ""
     }
     
@@ -53,13 +53,13 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey
 
     jsonData, err := sonic.Marshal(payload)
     if err != nil{
-        fmt.Printf("Error on json marshaling : %e",err)
+        fmt.Printf("Error on json marshaling : %v",err)
         return nil, result, err
     }
 
     req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
     if err != nil{
-        fmt.Printf("Error on making network request : %e", err)
+        fmt.Printf("Error on making network request : %v", err)
         return nil, result, err
     }
 
@@ -73,7 +73,7 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil{
-        return nil, result, fmt.Errorf("Failed to connect to OpenRouter: %e", err)
+        return nil, result, fmt.Errorf("Failed to connect to OpenRouter: %v", err)
     }
     defer resp.Body.Close()
 
@@ -83,8 +83,7 @@ func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey
 
     body, err := io.ReadAll(resp.Body)
     if err != nil{
-        fmt.Println(err)
-        return nil, result, nil 
+        return nil, result, fmt.Errorf("failed to read response body: %v", err)
     }
 
     if err := sonic.Unmarshal(body, &result); err != nil{

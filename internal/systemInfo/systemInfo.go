@@ -30,7 +30,7 @@ func containsAny(msg string, keywords []string) bool{
 // this shall be passed asa a context to the AI
 // basically a library of data for the ai model to read to provide better response
 // maybe on kind of training
-func GetModelDeps(msg string) (string, error){
+func GetModelDeps(msg string, lat string, lon string) (string, error){
 
     msg = strings.ToLower(msg)
 
@@ -45,7 +45,7 @@ func GetModelDeps(msg string) (string, error){
     // Weather Intent Check
     if containsAny(msg, consts.WEATHER_KEYWORDS){
 
-        w,err := api.GetWeatherReport()
+        w,err := api.GetWeatherReport(lat, lon)
 
         if err != nil{
             fmt.Println("Error getting weather data: ",err)

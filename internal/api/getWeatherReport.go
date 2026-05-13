@@ -13,20 +13,15 @@ var apiKey string
 
 // lat and lon will be embedded in the esp32 device. uses will be able to change it
 // via our Mobile Application and send it to this server
-var lat string
-var lon string
-
 
 // @info which this function we dont have to call api key from .env everytime this function runs
-func InitWeatherAPI(key string, l string, lo string){
+func InitWeatherAPI(key string){
     apiKey = key
-    lat = l
-    lon = lo
 }
 
 // @info this is the provider function that fetches data from openweather and returns
 // it to the AI via systemInfoContext (internal/systemInfo/systemInfo.go)
-func GetWeatherReport() (types.WeatherReport, error){
+func GetWeatherReport(lat string, lon string) (types.WeatherReport, error){
 
     var url string = fmt.Sprintf(
 		"https://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&appid=%s",
@@ -38,7 +33,7 @@ func GetWeatherReport() (types.WeatherReport, error){
     // "GET" -> http.MethodGet. Read the docs yesterday
     req, err := http.NewRequest(http.MethodGet,url,nil)
     if err != nil{
-        fmt.Printf("failed to create request to get weather data: %e",err)
+        fmt.Printf("failed to create request to get weather data: %v",err)
         return types.WeatherReport{}, err
     }
 
@@ -47,7 +42,7 @@ func GetWeatherReport() (types.WeatherReport, error){
     }
     resp, err := client.Do(req)
     if err != nil{
-        fmt.Printf("failed to send api request to openweather: %e", err)
+        fmt.Printf("failed to send api request to openweather: %v", err)
         return types.WeatherReport{}, err
     }
     defer resp.Body.Close()
@@ -85,7 +80,7 @@ func GetWeatherReport() (types.WeatherReport, error){
     // this is relatively much faster than standard encoding/json library
     SonicDecoder := sonic.ConfigDefault.NewDecoder(resp.Body) 
     if err := SonicDecoder.Decode(&raw); err != nil{
-        fmt.Printf("failed to decode opendata api response : %e", err)
+        fmt.Printf("failed to decode opendata api response : %v", err)
         return types.WeatherReport{}, err
     }
 
