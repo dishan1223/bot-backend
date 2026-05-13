@@ -65,6 +65,17 @@ Send a message to Nimo and receive a response.
 *   **Language Support:** Nimo replies naturally in the same language the user uses.
 *   **Study Helper:** Specifically tuned to be a study companion in the context of Bangladesh.
 
+## Intent Detection
+
+Nimo uses simple keyword detection to determine when to fetch real-time information. Note that more sophisticated intent detection will be available on full launch.
+
+### Keywords
+
+| Intent | Trigger Keywords |
+| :--- | :--- |
+| **Weather** | `weather`, `rain`, `rains`, `cold`, `hot`, `temperature`, `temp` |
+| **Web Search** | `search`, `web`, `website`, `news`, `story` |
+
 ## Interaction Examples
 
 **1. Asking for time:**

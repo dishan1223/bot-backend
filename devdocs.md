@@ -73,6 +73,8 @@ The backend is built using the [Fiber](https://gofiber.io/) web framework in Go.
     - Sends the request to OpenRouter with conversation history.
 5.  `systemInfo.GetModelDeps` performs **Intent Detection**:
     - Scans message for keywords defined in `consts/consts.go`.
+        - **Weather:** `weather`, `rain`, `rains`, `cold`, `hot`, `temperature`, `temp`
+        - **Search:** `search`, `web`, `website`, `news`, `story`
     - **Time/Date:** Returns current server time in RFC3339 format.
     - **Weather:** Calls `api.GetWeatherReport` to fetch live data.
     - **Search:** Calls `service.GetWebResultsFromLangSearch` for web search results.
