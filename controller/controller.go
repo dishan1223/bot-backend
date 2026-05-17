@@ -14,7 +14,7 @@ import (
 
 
 // msg: the message the users want to send to AI Model
-func SendReqToOpenRouter(msg string, ctx string, history []types.Message, apiKey string, userName string, lat string, lon string) ([]types.Message,types.AiResp, error){
+func SendReqToOpenRouter(msg string, history []types.Message, apiKey string, userName string, lat string, lon string) ([]types.Message,types.AiResp, error){
     // this variables stores AI response
     var result types.AiResp
 

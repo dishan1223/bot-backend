@@ -1,9 +1,8 @@
 package main
 
-// NOTE: 
-// WE have many error handling right now. To track them in production, 
+// NOTE:
+// WE have many error handling right now. To track them in production,
 // we will use a Telegram Bot who'll notify us on every error in the server
-
 
 import (
 	"fmt"
@@ -44,6 +43,7 @@ func main(){
     apiKey := os.Getenv("OPENROUTER_API_KEY")
     service.InitSearchAPI(os.Getenv("LANGSEARCH_API_KEY"))
     api.InitWeatherAPI(os.Getenv("OPENWEATHER_API_KEY"))
+    zapi :=  os.Getenv("Z_API_KEY")
 
 
 
@@ -63,6 +63,14 @@ func main(){
     })
 
     v1 := app.Group("/api/v1")
+
+    data, err := controller.CallZAi("who are your?", zapi, "Ishtiaq Dishan")
+    if err != nil{
+        panic(err)
+    }
+
+    fmt.Println(string(data))
+
     
     // domain:3000/api/v1/chat
     v1.Post("/chat", func(c fiber.Ctx) error {
@@ -90,7 +98,7 @@ func main(){
         // send request to OpenRouter. newHistory is the updated conversational history
         // we will need to update our database with this newHistory for each bot.
         // each bot's id is the botId
-        newHistory,fullResponse, err := controller.SendReqToOpenRouter(p.Message, consts.GeneralAiContext, history, apiKey, p.UserName, p.Lat, p.Lon)
+        newHistory,fullResponse, err := controller.SendReqToOpenRouter(p.Message, history, apiKey, p.UserName, p.Lat, p.Lon)
         if err != nil {
             fmt.Println(err)
             return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -113,6 +121,19 @@ func main(){
             "status": "success",
         })
     })
+
+    v1.Get("/zai", func(c fiber.Ctx) error {
+
+        resp, err := controller.CallZAi("who are your?", zapi, "Ishtiaq Dishan")
+        if err != nil{
+            panic(err)
+        }
+
+        return c.Status(fiber.StatusOK).JSON(fiber.Map{
+            "data": resp,
+        })
+    })
+
 
     port := os.Getenv("PORT")
     if port == "" {
