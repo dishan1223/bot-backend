@@ -33,9 +33,8 @@ var history = []types.Message{
 	},
 }
 
-func init() {
-	initializer.LoadEnv()
-}
+// project initialization
+initializer.LoadEnv()
 
 func main() {
 
