@@ -11,133 +11,127 @@ import (
 	"github.com/dishan1223/bot-backend/consts"
 	"github.com/dishan1223/bot-backend/controller"
 	"github.com/dishan1223/bot-backend/internal/api"
+	"github.com/dishan1223/bot-backend/internal/initializer"
 	"github.com/dishan1223/bot-backend/internal/service"
 	"github.com/dishan1223/bot-backend/types"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
-	"github.com/joho/godotenv"
 )
 
 // Get this history from vector database, based on botId
 // botId is a unique identifier for each bot that is embedded in the esp32 device
 var history = []types.Message{
-    {
-        Role: "user",
-        Content: "hello how are you Nimo?",
-    },
-    {
-        Role: "assistant",
-        Content: "Hey I am fine what about you?",
-    },
+	{
+		Role:    "user",
+		Content: "hello how are you Nimo?",
+	},
+	{
+		Role:    "assistant",
+		Content: "Hey I am fine what about you?",
+	},
 }
 
+func init() {
+	initializer.LoadEnv()
+}
 
-func main(){
+func main() {
 
+	apiKey := os.Getenv("OPENROUTER_API_KEY")
+	service.InitSearchAPI(os.Getenv("LANGSEARCH_API_KEY"))
+	api.InitWeatherAPI(os.Getenv("OPENWEATHER_API_KEY"))
+	zapi := os.Getenv("Z_API_KEY")
 
-    // Loading environment variables
-    // and initializing dependencies
-    _ = godotenv.Load()
-    apiKey := os.Getenv("OPENROUTER_API_KEY")
-    service.InitSearchAPI(os.Getenv("LANGSEARCH_API_KEY"))
-    api.InitWeatherAPI(os.Getenv("OPENWEATHER_API_KEY"))
-    zapi :=  os.Getenv("Z_API_KEY")
+	// backend part starts from here
+	app := fiber.New()
 
+	// gofiber middlewares
+	app.Use(cors.New())
+	app.Use(requestid.New())
+	app.Use(logger.New(logger.Config{
+		Format: "$[${ip}]:${port} | {pid} ${requestid} ${status} - ${method} ${path}\n",
+	}))
 
+	// Serve index.html at the root
+	app.Get("/", func(c fiber.Ctx) error {
+		return c.SendFile("./index.html")
+	})
 
-    // backend part starts from here
-    app := fiber.New()
+	v1 := app.Group("/api/v1")
 
-    // gofiber middlewares
-    app.Use(cors.New())
-    app.Use(requestid.New())
-    app.Use(logger.New(logger.Config{
-        Format: "$[${ip}]:${port} | {pid} ${requestid} ${status} - ${method} ${path}\n",
-    }))
+	data, err := controller.CallZAi("who are your?", zapi, "Ishtiaq Dishan")
+	if err != nil {
+		panic(err)
+	}
 
-    // Serve index.html at the root
-    app.Get("/", func(c fiber.Ctx) error {
-        return c.SendFile("./index.html")
-    })
+	fmt.Println(string(data))
 
-    v1 := app.Group("/api/v1")
+	// domain:3000/api/v1/chat
+	v1.Post("/chat", func(c fiber.Ctx) error {
+		p := new(types.Prompt)
 
-    data, err := controller.CallZAi("who are your?", zapi, "Ishtiaq Dishan")
-    if err != nil{
-        panic(err)
-    }
+		if err := c.Bind().Body(p); err != nil {
+			fmt.Println("Binding error:", err)
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid request body",
+			})
+		}
 
-    fmt.Println(string(data))
+		// ctx is saved in consts/consts.go file.(development)
+		// No need to take contexts from the esp32.
+		// We will use an SQLite database to store user conversations and contexts
 
-    
-    // domain:3000/api/v1/chat
-    v1.Post("/chat", func(c fiber.Ctx) error {
-        p := new(types.Prompt)
+		// free up context window.
+		// NOTE : This is only for the alpha version of this codebase for testing purposes.
+		// In production we will use a database and conditionally take contexts
+		if len(history) >= consts.CONTEXT_WINDOW {
+			history = history[consts.TRIM_COUNT:]
+		}
 
-        if err := c.Bind().Body(p); err != nil{
-            fmt.Println("Binding error:", err)
-            return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-                "error": "Invalid request body",
-            })
-        }
+		// send request to OpenRouter. newHistory is the updated conversational history
+		// we will need to update our database with this newHistory for each bot.
+		// each bot's id is the botId
+		newHistory, fullResponse, err := controller.SendReqToOpenRouter(p.Message, history, apiKey, p.UserName, p.Lat, p.Lon)
+		if err != nil {
+			fmt.Println(err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Internal server error",
+			})
+		}
 
-        // ctx is saved in consts/consts.go file.(development)
-        // No need to take contexts from the esp32. 
-        // We will use an SQLite database to store user conversations and contexts
+		// updating conversational history
+		// NOTE: currently we are not using any database. But we will move to sqlite-vec
+		// as our primary vector database
+		history = newHistory
+		replyText := ""
+		if len(fullResponse.Choices) > 0 {
+			replyText = fullResponse.Choices[0].Message.Content
+		}
 
-        // free up context window.
-        // NOTE : This is only for the alpha version of this codebase for testing purposes.
-        // In production we will use a database and conditionally take contexts
-        if len(history) >= consts.CONTEXT_WINDOW{
-            history = history[consts.TRIM_COUNT:]
-        }
-        
+		c.Set("Content-Type", "application/json")
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"reply":  replyText,
+			"status": "success",
+		})
+	})
 
-        // send request to OpenRouter. newHistory is the updated conversational history
-        // we will need to update our database with this newHistory for each bot.
-        // each bot's id is the botId
-        newHistory,fullResponse, err := controller.SendReqToOpenRouter(p.Message, history, apiKey, p.UserName, p.Lat, p.Lon)
-        if err != nil {
-            fmt.Println(err)
-            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-                "error": "Internal server error",
-            })
-        }
+	v1.Get("/zai", func(c fiber.Ctx) error {
 
-        // updating conversational history
-        // NOTE: currently we are not using any database. But we will move to sqlite-vec
-        // as our primary vector database
-        history = newHistory
-        replyText := ""
-        if len(fullResponse.Choices) > 0 {
-            replyText = fullResponse.Choices[0].Message.Content
-        }
+		resp, err := controller.CallZAi("who are your?", zapi, "Ishtiaq Dishan")
+		if err != nil {
+			panic(err)
+		}
 
-        c.Set("Content-Type", "application/json")
-        return c.Status(fiber.StatusOK).JSON(fiber.Map{
-            "reply": replyText,
-            "status": "success",
-        })
-    })
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"data": resp,
+		})
+	})
 
-    v1.Get("/zai", func(c fiber.Ctx) error {
-
-        resp, err := controller.CallZAi("who are your?", zapi, "Ishtiaq Dishan")
-        if err != nil{
-            panic(err)
-        }
-
-        return c.Status(fiber.StatusOK).JSON(fiber.Map{
-            "data": resp,
-        })
-    })
-
-
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "3000"
-    }
-    fmt.Println(app.Listen(":" + port))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	fmt.Println(app.Listen(":" + port))
 }
