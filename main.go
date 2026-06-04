@@ -34,9 +34,9 @@ var history = []types.Message{
 }
 
 // project initialization
-initializer.LoadEnv()
 
 func main() {
+	initializer.LoadEnv()
 
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	service.InitSearchAPI(os.Getenv("LANGSEARCH_API_KEY"))
@@ -128,6 +128,7 @@ func main() {
 		})
 	})
 
+	v1.Post("/gemini", controller.GeminiHandler)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"

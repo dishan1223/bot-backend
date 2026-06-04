@@ -377,6 +377,15 @@
                 </select>
             </div>
 
+            <div class="input-group">
+                <label for="model">AI Model Provider</label>
+                <select id="model">
+                    <option value="chat">OpenRouter (GPT-OSS)</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="zai">ZAi (Llama 3.3)</option>
+                </select>
+            </div>
+
             <button class="start-btn" onclick="startChat()">Wake up Nimo</button>
         </div>
     </div>
@@ -417,7 +426,6 @@
     </div>
 
     <script>
-        const API_URL = "/api/v1/chat"; // Using relative path for versatility
         const BOT_ID = "nimo_web_v1";
 
         const COORDS = {
@@ -431,7 +439,8 @@
             name: "",
             location: "",
             lat: "",
-            lon: ""
+            lon: "",
+            model: "chat"
         };
 
         // Check for saved data
@@ -439,15 +448,26 @@
             const saved = localStorage.getItem('nimo_user');
             if (saved) {
                 userData = JSON.parse(saved);
+                // Ensure model exists for legacy saved data
+                if (!userData.model) userData.model = "chat";
                 showChat();
-                addMessage('bot', `Welcome back, ${userData.name}! How can I help you today? (Note: The server is rolling up, so my first response might take a moment)`);
+                addMessage('bot', `Welcome back, ${userData.name}! I'm using ${getModelDisplayName(userData.model)}. How can I help you today?`);
             }
         };
+
+        function getModelDisplayName(model) {
+            switch(model) {
+                case 'gemini': return 'Google Gemini';
+                case 'zai': return 'ZAi (Llama)';
+                default: return 'OpenRouter';
+            }
+        }
 
         function startChat() {
             const nameInput = document.getElementById('username');
             const name = nameInput.value.trim();
             const loc = document.getElementById('location').value;
+            const model = document.getElementById('model').value;
 
             if (!name) {
                 alert("Please tell Nimo your name!");
@@ -459,12 +479,13 @@
                 name: name,
                 location: loc,
                 lat: COORDS[loc].lat,
-                lon: COORDS[loc].lon
+                lon: COORDS[loc].lon,
+                model: model
             };
 
             localStorage.setItem('nimo_user', JSON.stringify(userData));
             showChat();
-            addMessage('bot', `Hello ${name}! I'm Nimo, your digital pet. I'm so happy to meet you! (Note: The server is rolling up, so my first response might take a moment)`);
+            addMessage('bot', `Hello ${name}! I'm Nimo, your digital pet. I'm currently powered by ${getModelDisplayName(model)}. I'm so happy to meet you!`);
         }
 
         function showChat() {
@@ -500,11 +521,13 @@
             typing.style.display = 'flex';
             document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 
+            const endpoint = `/api/v1/${userData.model}`;
+
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
+                const response = await fetch(endpoint, {
+                    method: userData.model === 'zai' ? 'GET' : 'POST', // ZAi uses GET in current implementation
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                    body: userData.model === 'zai' ? null : JSON.stringify({
                         msg: msg,
                         botId: BOT_ID,
                         userName: userData.name,
@@ -524,8 +547,26 @@
 
                 const data = await response.json();
 
-                if (data.reply) {
-                    addMessage('bot', data.reply);
+                let reply = "";
+                if (userData.model === 'zai') {
+                    // Handle ZAi specific response format: {"data": "..."}
+                    // Wait, ZAi response is likely the raw body or wrapped in fiber.Map
+                    // Based on v1.Get("/zai", ...) in main.go: return c.JSON(fiber.Map{"data": resp})
+                    // And CallZAi returns body which is JSON string.
+                    if (data.data) {
+                        try {
+                            const zaiData = JSON.parse(data.data);
+                            reply = zaiData.data.text;
+                        } catch(e) {
+                            reply = data.data; // Fallback
+                        }
+                    }
+                } else {
+                    reply = data.reply;
+                }
+
+                if (reply) {
+                    addMessage('bot', reply);
                 } else {
                     addMessage('bot', "Oops, I'm feeling a bit dizzy. Can you try again?");
                 }
